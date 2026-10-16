@@ -21,3 +21,27 @@ jobs:
 
       - name: Build et tests
         run: ./mvnw clean verify -B
+
+  docker:
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/nordlys-shoploc/service-merchants:latest
+            ghcr.io/nordlys-shoploc/service-merchants:${{ github.sha }}
