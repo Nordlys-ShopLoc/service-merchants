@@ -1,7 +1,9 @@
-package fr.nordlys.shoploc.merchants.repository.jpa;
+package fr.nordlys.shoploc.merchants.infrastructure.persistence.adapter;
 
-import fr.nordlys.shoploc.merchants.domain.Shop;
-import fr.nordlys.shoploc.merchants.domain.ShopPort;
+import fr.nordlys.shoploc.merchants.infrastructure.persistence.entity.ShopEntity;
+import fr.nordlys.shoploc.merchants.infrastructure.persistence.repository.ShopJpaRepository;
+import fr.nordlys.shoploc.merchants.domain.model.Shop;
+import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 

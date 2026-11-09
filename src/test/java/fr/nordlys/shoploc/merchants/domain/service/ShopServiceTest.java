@@ -1,5 +1,7 @@
-package fr.nordlys.shoploc.merchants.domain;
+package fr.nordlys.shoploc.merchants.domain.service;
 
+import fr.nordlys.shoploc.merchants.domain.model.Shop;
+import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;

@@ -1,6 +1,6 @@
-package fr.nordlys.shoploc.merchants.repository.jpa;
+package fr.nordlys.shoploc.merchants.infrastructure.persistence.entity;
 
-import fr.nordlys.shoploc.merchants.domain.Shop;
+import fr.nordlys.shoploc.merchants.domain.model.Shop;
 import jakarta.persistence.*;
 
 @Entity
