@@ -1,7 +1,7 @@
-package fr.nordlys.shoploc.merchants.api;
+package fr.nordlys.shoploc.merchants.api.controller;
 
-import fr.nordlys.shoploc.merchants.domain.Shop;
-import fr.nordlys.shoploc.merchants.domain.ShopService;
+import fr.nordlys.shoploc.merchants.domain.model.Shop;
+import fr.nordlys.shoploc.merchants.domain.service.ShopService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
