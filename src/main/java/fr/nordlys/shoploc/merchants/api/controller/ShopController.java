@@ -21,7 +21,8 @@ import java.util.List;
 @RequestMapping("/api/v1/shops")
 public class ShopController {
 
-    // Added by the gateway after checking the token; it overwrites any value sent by the client
+    // Added by the gateway after checking the token; it overwrites any value sent by the client.
+    // Missing without a token: the service then answers 403.
     static final String USER_ID_HEADER = "X-User-Id";
     static final String USER_ROLE_HEADER = "X-User-Role";
 
@@ -40,8 +41,8 @@ public class ShopController {
     /** US-S13: the merchant registers a shop. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ShopResponse register(@RequestHeader(USER_ID_HEADER) Long userId,
-                                 @RequestHeader(USER_ROLE_HEADER) String role,
+    public ShopResponse register(@RequestHeader(value = USER_ID_HEADER, required = false) Long userId,
+                                 @RequestHeader(value = USER_ROLE_HEADER, required = false) String role,
                                  @Valid @RequestBody ShopRegistrationRequest request) {
         Shop shop = shopService.register(userId, role, request.name(), request.address(),
                 request.category(), request.description());
@@ -50,19 +51,19 @@ public class ShopController {
 
     /** US-A01: shops waiting for the administrator. */
     @GetMapping("/pending")
-    public List<ShopResponse> findPending(@RequestHeader(USER_ROLE_HEADER) String role) {
+    public List<ShopResponse> findPending(@RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
         return toResponses(shopService.findPending(role));
     }
 
     /** US-A01: the administrator accepts the shop. */
     @PostMapping("/{id}/approve")
-    public ShopResponse approve(@PathVariable Long id, @RequestHeader(USER_ROLE_HEADER) String role) {
+    public ShopResponse approve(@PathVariable Long id, @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
         return ShopResponse.from(shopService.approve(id, role));
     }
 
     /** US-A01: the administrator refuses the shop. */
     @PostMapping("/{id}/reject")
-    public ShopResponse reject(@PathVariable Long id, @RequestHeader(USER_ROLE_HEADER) String role) {
+    public ShopResponse reject(@PathVariable Long id, @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
         return ShopResponse.from(shopService.reject(id, role));
     }
 
