@@ -1,15 +1,28 @@
 package fr.nordlys.shoploc.merchants.api.controller;
 
+import fr.nordlys.shoploc.merchants.api.dto.ShopRegistrationRequest;
+import fr.nordlys.shoploc.merchants.api.dto.ShopResponse;
 import fr.nordlys.shoploc.merchants.domain.model.Shop;
 import fr.nordlys.shoploc.merchants.domain.service.ShopService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/shops")
 public class ShopController {
+
+    // Added by the gateway after checking the token; it overwrites any value sent by the client
+    static final String USER_ID_HEADER = "X-User-Id";
+    static final String USER_ROLE_HEADER = "X-User-Role";
 
     private final ShopService shopService;
 
@@ -17,8 +30,24 @@ public class ShopController {
         this.shopService = shopService;
     }
 
+    /** Partner shops shown to clients: approved only. Public route. */
     @GetMapping
-    public List<Shop> findAll() {
-        return shopService.findAll();
+    public List<ShopResponse> findPartners() {
+        return toResponses(shopService.findPartners());
+    }
+
+    /** US-S13: the merchant registers a shop. */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ShopResponse register(@RequestHeader(USER_ID_HEADER) Long userId,
+                                 @RequestHeader(USER_ROLE_HEADER) String role,
+                                 @Valid @RequestBody ShopRegistrationRequest request) {
+        Shop shop = shopService.register(userId, role, request.name(), request.address(),
+                request.category(), request.description());
+        return ShopResponse.from(shop);
+    }
+
+    private List<ShopResponse> toResponses(List<Shop> shops) {
+        return shops.stream().map(ShopResponse::from).toList();
     }
 }

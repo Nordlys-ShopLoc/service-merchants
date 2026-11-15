@@ -1,34 +1,101 @@
 package fr.nordlys.shoploc.merchants.domain.service;
 
+import fr.nordlys.shoploc.merchants.domain.exception.OperationNotAllowedException;
 import fr.nordlys.shoploc.merchants.domain.model.Shop;
+import fr.nordlys.shoploc.merchants.domain.model.ShopStatus;
 import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import java.util.List;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/** US-S13 (registration) and US-A01 (approval by the administrator). */
 class ShopServiceTest {
 
+    private static final Long MERCHANT_ID = 10L;
+
+    private final ShopPort shopPort = mock(ShopPort.class);
+    private final ShopService service = new ShopService(shopPort);
+
+    @BeforeEach
+    void setUp() {
+        // The fake database gives back the shop it receives
+        when(shopPort.save(any(Shop.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private static Shop shop(Long id, ShopStatus status) {
+        return new Shop(id, MERCHANT_ID, "Le Fournil", "12 rue Solferino, Lille", "Boulangerie",
+                null, status, LocalDateTime.now());
+    }
+
+    /** Gets the shop that the service gave to shopPort.save(). */
+    private Shop savedShop() {
+        ArgumentCaptor<Shop> captor = ArgumentCaptor.forClass(Shop.class);
+        verify(shopPort).save(captor.capture());
+        return captor.getValue();
+    }
+
+    // ---------- Partner list ----------
+
     @Test
-    void retourne_les_commerces_fournis_par_le_port() {
-        ShopPort port = () -> List.of(
-                new Shop(1L, "Le Fournil", "12 rue Solferino, Lille", "Boulangerie"),
-                new Shop(2L, "Boucherie Flamande", "28 rue Solferino, Lille", "Boucherie")
-        );
+    void shows_only_approved_shops_to_clients() {
+        when(shopPort.findByStatus(ShopStatus.APPROVED)).thenReturn(List.of(shop(1L, ShopStatus.APPROVED)));
 
-        ShopService service = new ShopService(port);
+        assertThat(service.findPartners()).hasSize(1);
+        verify(shopPort).findByStatus(ShopStatus.APPROVED);
+    }
 
-        List<Shop> shops = service.findAll();
+    // ---------- US-S13 ----------
 
-        assertThat(shops).hasSize(2);
-        assertThat(shops.getFirst().name()).isEqualTo("Le Fournil");
+    @Test
+    void registers_a_shop_waiting_for_the_administrator() {
+        service.register(MERCHANT_ID, "MERCHANT", "Le Fournil", "12 rue Solferino, Lille", "Boulangerie", "Pain au levain");
+
+        Shop shop = savedShop();
+        assertThat(shop.status()).isEqualTo(ShopStatus.PENDING);
+        assertThat(shop.ownerAccountId()).isEqualTo(MERCHANT_ID);
+        assertThat(shop.name()).isEqualTo("Le Fournil");
+        assertThat(shop.description()).isEqualTo("Pain au levain");
     }
 
     @Test
-    void retourne_une_liste_vide_quand_aucun_commerce() {
-        ShopPort port = List::of;
+    void removes_the_spaces_around_the_fields() {
+        service.register(MERCHANT_ID, "MERCHANT", "  Le Fournil ", " 12 rue Solferino ", " Boulangerie ", "   ");
 
-        ShopService service = new ShopService(port);
+        Shop shop = savedShop();
+        assertThat(shop.name()).isEqualTo("Le Fournil");
+        assertThat(shop.address()).isEqualTo("12 rue Solferino");
+        assertThat(shop.category()).isEqualTo("Boulangerie");
+        assertThat(shop.description()).isNull();
+    }
 
-        assertThat(service.findAll()).isEmpty();
+    @Test
+    void requires_a_name_an_address_and_a_category() {
+        assertThatThrownBy(() -> service.register(MERCHANT_ID, "MERCHANT", " ", "12 rue Solferino", "Boulangerie", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.register(MERCHANT_ID, "MERCHANT", "Le Fournil", null, "Boulangerie", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.register(MERCHANT_ID, "MERCHANT", "Le Fournil", "12 rue Solferino", "", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(shopPort, never()).save(any());
+    }
+
+    @Test
+    void only_a_merchant_can_register_a_shop() {
+        assertThatThrownBy(() -> service.register(MERCHANT_ID, "CLIENT", "Le Fournil", "12 rue Solferino", "Boulangerie", null))
+                .isInstanceOf(OperationNotAllowedException.class);
+        assertThatThrownBy(() -> service.register(null, "MERCHANT", "Le Fournil", "12 rue Solferino", "Boulangerie", null))
+                .isInstanceOf(OperationNotAllowedException.class);
+        verify(shopPort, never()).save(any());
     }
 }
