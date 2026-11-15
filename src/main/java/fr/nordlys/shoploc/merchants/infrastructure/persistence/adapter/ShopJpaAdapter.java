@@ -8,6 +8,7 @@ import fr.nordlys.shoploc.merchants.infrastructure.persistence.repository.ShopJp
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /** Adapter: binds the domain port to JPA persistence. */
 @Repository
@@ -24,6 +25,11 @@ public class ShopJpaAdapter implements ShopPort {
         return jpaRepository.findByStatusOrderByCreatedAtAsc(status).stream()
                 .map(ShopEntity::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Shop> findById(Long id) {
+        return jpaRepository.findById(id).map(ShopEntity::toDomain);
     }
 
     @Override
