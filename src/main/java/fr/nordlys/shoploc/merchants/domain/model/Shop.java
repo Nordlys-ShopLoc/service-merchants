@@ -18,4 +18,13 @@ public record Shop(
         ShopStatus status,
         LocalDateTime createdAt
 ) {
+
+    public boolean isPending() {
+        return status == ShopStatus.PENDING;
+    }
+
+    /** Same shop with another status: used when the administrator decides (US-A01). */
+    public Shop withStatus(ShopStatus newStatus) {
+        return new Shop(id, ownerAccountId, name, address, category, description, newStatus, createdAt);
+    }
 }

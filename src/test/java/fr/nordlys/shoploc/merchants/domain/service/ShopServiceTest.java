@@ -1,6 +1,8 @@
 package fr.nordlys.shoploc.merchants.domain.service;
 
 import fr.nordlys.shoploc.merchants.domain.exception.OperationNotAllowedException;
+import fr.nordlys.shoploc.merchants.domain.exception.ShopAlreadyReviewedException;
+import fr.nordlys.shoploc.merchants.domain.exception.ShopNotFoundException;
 import fr.nordlys.shoploc.merchants.domain.model.Shop;
 import fr.nordlys.shoploc.merchants.domain.model.ShopStatus;
 import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
@@ -10,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -95,6 +98,61 @@ class ShopServiceTest {
         assertThatThrownBy(() -> service.register(MERCHANT_ID, "CLIENT", "Le Fournil", "12 rue Solferino", "Boulangerie", null))
                 .isInstanceOf(OperationNotAllowedException.class);
         assertThatThrownBy(() -> service.register(null, "MERCHANT", "Le Fournil", "12 rue Solferino", "Boulangerie", null))
+                .isInstanceOf(OperationNotAllowedException.class);
+        verify(shopPort, never()).save(any());
+    }
+
+    // ---------- US-A01 ----------
+
+    @Test
+    void lists_the_shops_waiting_for_a_decision() {
+        when(shopPort.findByStatus(ShopStatus.PENDING)).thenReturn(List.of(shop(1L, ShopStatus.PENDING)));
+
+        assertThat(service.findPending("ADMIN")).extracting(Shop::id).containsExactly(1L);
+    }
+
+    @Test
+    void approves_a_pending_shop() {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, ShopStatus.PENDING)));
+
+        Shop shop = service.approve(1L, "ADMIN");
+
+        assertThat(shop.status()).isEqualTo(ShopStatus.APPROVED);
+        assertThat(savedShop().status()).isEqualTo(ShopStatus.APPROVED);
+    }
+
+    @Test
+    void rejects_a_pending_shop() {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, ShopStatus.PENDING)));
+
+        assertThat(service.reject(1L, "ADMIN").status()).isEqualTo(ShopStatus.REJECTED);
+    }
+
+    @Test
+    void refuses_to_review_a_shop_twice() {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, ShopStatus.APPROVED)));
+
+        assertThatThrownBy(() -> service.reject(1L, "ADMIN"))
+                .isInstanceOf(ShopAlreadyReviewedException.class);
+        verify(shopPort, never()).save(any());
+    }
+
+    @Test
+    void refuses_an_unknown_shop() {
+        // Nothing is configured for id 99: the fake database returns an empty Optional
+        assertThatThrownBy(() -> service.approve(99L, "ADMIN"))
+                .isInstanceOf(ShopNotFoundException.class);
+    }
+
+    @Test
+    void only_the_administrator_can_review_shops() {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, ShopStatus.PENDING)));
+
+        assertThatThrownBy(() -> service.findPending("MERCHANT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+        assertThatThrownBy(() -> service.approve(1L, "MERCHANT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+        assertThatThrownBy(() -> service.reject(1L, "CLIENT"))
                 .isInstanceOf(OperationNotAllowedException.class);
         verify(shopPort, never()).save(any());
     }
