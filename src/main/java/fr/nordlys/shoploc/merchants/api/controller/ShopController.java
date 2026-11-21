@@ -38,6 +38,13 @@ public class ShopController {
         return toResponses(shopService.findPartners());
     }
 
+    /** Socle M2: the shop of the logged-in merchant. GET is public in the gateway, so the role is checked here. */
+    @GetMapping("/mine")
+    public ShopResponse findMine(@RequestHeader(value = USER_ID_HEADER, required = false) Long userId,
+                                 @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
+        return ShopResponse.from(shopService.findMine(userId, role));
+    }
+
     /** US-S13: the merchant registers a shop. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

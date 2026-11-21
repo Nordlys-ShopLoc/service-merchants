@@ -1,5 +1,6 @@
 package fr.nordlys.shoploc.merchants.domain.service;
 
+import fr.nordlys.shoploc.merchants.domain.exception.MerchantHasNoShopException;
 import fr.nordlys.shoploc.merchants.domain.exception.OperationNotAllowedException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopAlreadyReviewedException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopNotFoundException;
@@ -56,6 +57,22 @@ public class ShopService {
     /** US-A01: the administrator refuses the shop. */
     public Shop reject(Long shopId, String role) {
         return review(shopId, role, ShopStatus.REJECTED);
+    }
+
+    public Shop findMine(Long merchantId, String role) {
+        if (merchantId == null || !MERCHANT.equals(role)) {
+            throw new OperationNotAllowedException("Only a merchant can manage a shop");
+        }
+        return shopPort.findLatestByOwner(merchantId)
+                .orElseThrow(() -> new MerchantHasNoShopException(merchantId));
+    }
+
+    public Shop requireOwnedApprovedShop(Long merchantId, String role) {
+        Shop shop = findMine(merchantId, role);
+        if (shop.status() != ShopStatus.APPROVED) {
+            throw new OperationNotAllowedException("The shop must be approved by ShopLoc before it can be changed");
+        }
+        return shop;
     }
 
     private Shop review(Long shopId, String role, ShopStatus decision) {

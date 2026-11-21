@@ -1,5 +1,6 @@
 package fr.nordlys.shoploc.merchants.api.controller;
 
+import fr.nordlys.shoploc.merchants.domain.exception.MerchantHasNoShopException;
 import fr.nordlys.shoploc.merchants.domain.exception.OperationNotAllowedException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopAlreadyReviewedException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopNotFoundException;
@@ -24,6 +25,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ShopNotFoundException.class)
     ProblemDetail notFound(ShopNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(MerchantHasNoShopException.class)
+    ProblemDetail noShop(MerchantHasNoShopException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 

@@ -12,5 +12,7 @@ public interface ShopPort {
 
     Optional<Shop> findById(Long id);
 
+    Optional<Shop> findLatestByOwner(Long ownerAccountId);
+
     Shop save(Shop shop);
 }
