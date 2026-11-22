@@ -19,6 +19,15 @@ public class ProductService {
         this.shopService = shopService;
     }
 
+    // retourne les articles visibles d'un commerce valide
+    public List<Product> findPublicByShop(Long shopId) {
+        shopService.requireApprovedShop(shopId);
+
+        return productPort.findByShop(shopId).stream()
+                .filter(Product::available)
+                .toList();
+    }
+
     /** All the articles of the merchant's shop, withdrawn ones included. */
     public List<Product> findMine(Long merchantId, String role) {
         Shop shop = shopService.requireOwnedApprovedShop(merchantId, role);
