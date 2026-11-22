@@ -33,6 +33,12 @@ public class ShopJpaAdapter implements ShopPort {
     }
 
     @Override
+    public Optional<Shop> findLatestByOwner(Long ownerAccountId) {
+        return jpaRepository.findFirstByOwnerAccountIdOrderByCreatedAtDesc(ownerAccountId)
+                .map(ShopEntity::toDomain);
+    }
+
+    @Override
     public Shop save(Shop shop) {
         return jpaRepository.save(ShopEntity.fromDomain(shop)).toDomain();
     }
