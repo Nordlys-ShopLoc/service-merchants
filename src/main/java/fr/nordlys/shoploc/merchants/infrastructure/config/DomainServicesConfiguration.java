@@ -1,6 +1,8 @@
 package fr.nordlys.shoploc.merchants.infrastructure.config;
 
+import fr.nordlys.shoploc.merchants.domain.port.ProductPort;
 import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
+import fr.nordlys.shoploc.merchants.domain.service.ProductService;
 import fr.nordlys.shoploc.merchants.domain.service.ShopService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,5 +17,10 @@ public class DomainServicesConfiguration {
     @Bean
     ShopService shopService(ShopPort shopPort) {
         return new ShopService(shopPort);
+    }
+
+    @Bean
+    ProductService productService(ProductPort productPort, ShopService shopService) {
+        return new ProductService(productPort, shopService);
     }
 }

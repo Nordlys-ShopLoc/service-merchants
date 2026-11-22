@@ -2,6 +2,7 @@ package fr.nordlys.shoploc.merchants.api.controller;
 
 import fr.nordlys.shoploc.merchants.domain.exception.MerchantHasNoShopException;
 import fr.nordlys.shoploc.merchants.domain.exception.OperationNotAllowedException;
+import fr.nordlys.shoploc.merchants.domain.exception.ProductNotFoundException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopAlreadyReviewedException;
 import fr.nordlys.shoploc.merchants.domain.exception.ShopNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MerchantHasNoShopException.class)
     ProblemDetail noShop(MerchantHasNoShopException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    ProblemDetail productNotFound(ProductNotFoundException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
