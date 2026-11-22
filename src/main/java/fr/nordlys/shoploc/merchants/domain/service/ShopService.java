@@ -27,6 +27,16 @@ public class ShopService {
         return shopPort.findByStatus(ShopStatus.APPROVED);
     }
 
+    public Shop requireApprovedShop(Long shopId) {
+        Shop shop = shopPort.findById(shopId).orElseThrow(() -> new ShopNotFoundException(shopId));
+
+        if (shop.status() != ShopStatus.APPROVED) {
+            throw new ShopNotFoundException(shopId);
+        }
+
+        return shop;
+    }
+
     /** US-S13: the merchant registers a shop, which waits for the administrator. */
     public Shop register(Long merchantId, String role, String name, String address,
                          String category, String description) {
