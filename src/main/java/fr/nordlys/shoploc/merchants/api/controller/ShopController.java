@@ -44,6 +44,11 @@ public class ShopController {
                                  @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
         return ShopResponse.from(shopService.findMine(userId, role));
     }
+    /** US-C05: detail of a partner shop. Public route: a pending or refused shop answers 404. */
+    @GetMapping("/{id}")
+    public ShopResponse findPartner(@PathVariable Long id) {
+        return ShopResponse.from(shopService.requireApprovedShop(id));
+    }
 
     /** US-S13: the merchant registers a shop. */
     @PostMapping
