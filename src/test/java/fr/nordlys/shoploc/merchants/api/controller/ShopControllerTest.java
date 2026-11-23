@@ -125,4 +125,23 @@ class ShopControllerTest {
         mockMvc.perform(post("/api/v1/shops/1/approve").header("X-User-Role", "MERCHANT"))
                 .andExpect(status().isForbidden());
     }
+    // ---------- US-C05 ----------
+
+    @Test
+    void shows_an_approved_shop_without_login() throws Exception {
+        when(shopService.requireApprovedShop(1L)).thenReturn(shop(ShopStatus.APPROVED));
+
+        mockMvc.perform(get("/api/v1/shops/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Le Fournil"))
+                .andExpect(jsonPath("$.address").value("12 rue Solferino, Lille"));
+    }
+
+    @Test
+    void answers_404_for_a_shop_that_is_not_approved() throws Exception {
+        when(shopService.requireApprovedShop(2L)).thenThrow(new ShopNotFoundException(2L));
+
+        mockMvc.perform(get("/api/v1/shops/2"))
+                .andExpect(status().isNotFound());
+    }
 }
