@@ -158,4 +158,33 @@ class ProductServiceTest {
                 .isInstanceOf(OperationNotAllowedException.class);
         verify(productPort, never()).findByShop(any());
     }
+
+    // ---------- US-S04 ----------
+
+    @Test
+    void lists_the_articles_to_restock_most_urgent_first() {
+        when(productPort.findByShop(SHOP_ID)).thenReturn(List.of(
+                new Product(1L, SHOP_ID, "Pain de campagne", null, new BigDecimal("3.20"), 15, 5, true),
+                new Product(2L, SHOP_ID, "Croissant", null, new BigDecimal("1.10"), 4, 10, true),
+                new Product(3L, SHOP_ID, "Brioche", null, new BigDecimal("4.00"), 0, 0, true),
+                new Product(4L, SHOP_ID, "Galette", null, new BigDecimal("6.00"), 0, 0, false)));
+
+        assertThat(service.findStockAlerts(MERCHANT_ID, "MERCHANT"))
+                .extracting(Product::name)
+                .containsExactly("Brioche", "Croissant");
+    }
+
+    @Test
+    void refuses_the_stock_alerts_to_a_client() {
+        assertThatThrownBy(() -> service.findStockAlerts(MERCHANT_ID, "CLIENT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+    }
+
+    @Test
+    void refuses_the_stock_alerts_of_a_shop_not_yet_approved() {
+        givenShop(ShopStatus.PENDING);
+
+        assertThatThrownBy(() -> service.findStockAlerts(MERCHANT_ID, "MERCHANT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+    }
 }
