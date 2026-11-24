@@ -6,6 +6,7 @@ import fr.nordlys.shoploc.merchants.domain.model.Shop;
 import fr.nordlys.shoploc.merchants.domain.port.ProductPort;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 /** US-S03: the merchant manages the articles of her approved shop. */
@@ -59,6 +60,15 @@ public class ProductService {
     public Product withdraw(Long merchantId, String role, Long productId) {
         Product product = findOwned(merchantId, role, productId);
         return productPort.save(product.withdrawn());
+    }
+
+    /** US-S04: articles on sale that are out of stock or under their threshold, the most urgent first. */
+    public List<Product> findStockAlerts(Long merchantId, String role) {
+        Shop shop = shopService.requireOwnedApprovedShop(merchantId, role);
+        return productPort.findByShop(shop.id()).stream()
+                .filter(Product::needsStockAlert)
+                .sorted(Comparator.comparingInt(Product::stock))
+                .toList();
     }
 
     private Product findOwned(Long merchantId, String role, Long productId) {

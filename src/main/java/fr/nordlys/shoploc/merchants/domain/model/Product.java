@@ -32,4 +32,19 @@ public record Product(
     public Product withdrawn() {
         return new Product(id, shopId, name, description, price, stock, lowStockThreshold, false);
     }
+
+    /** US-S04: no article left. */
+    public boolean isOutOfStock() {
+        return stock == 0;
+    }
+
+    /** US-S04: still in stock, but at or under the alert threshold chosen by the merchant. */
+    public boolean isLowStock() {
+        return stock > 0 && stock <= lowStockThreshold;
+    }
+
+    /** US-S04: the merchant is warned only for the articles still offered to clients. */
+    public boolean needsStockAlert() {
+        return available && (isOutOfStock() || isLowStock());
+    }
 }
