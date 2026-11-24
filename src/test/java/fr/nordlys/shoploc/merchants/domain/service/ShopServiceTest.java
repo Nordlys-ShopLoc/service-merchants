@@ -21,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 /** US-S13 (registration) and US-A01 (approval by the administrator). */
 class ShopServiceTest {
@@ -40,7 +42,9 @@ class ShopServiceTest {
         return new Shop(id, MERCHANT_ID, "Le Fournil", "12 rue Solferino, Lille", "Boulangerie",
                 null, status, LocalDateTime.now());
     }
-
+    private static Shop approvedShop(Long id, String name) {
+        return new Shop(id, MERCHANT_ID, name, "Lille", "Commerce", null, ShopStatus.APPROVED, LocalDateTime.now());
+    }
     /** Gets the shop that the service gave to shopPort.save(). */
     private Shop savedShop() {
         ArgumentCaptor<Shop> captor = ArgumentCaptor.forClass(Shop.class);
@@ -155,5 +159,42 @@ class ShopServiceTest {
         assertThatThrownBy(() -> service.reject(1L, "CLIENT"))
                 .isInstanceOf(OperationNotAllowedException.class);
         verify(shopPort, never()).save(any());
+    }
+    // ---------- US-C05 ----------
+
+    @Test
+    void sorts_partner_shops_by_name() {
+        when(shopPort.findByStatus(ShopStatus.APPROVED)).thenReturn(List.of(
+                approvedShop(1L, "Le Fournil"),
+                approvedShop(2L, "Épicerie du Coin"),
+                approvedShop(3L, "Boucherie Flamande")));
+
+        assertThat(service.findPartners())
+                .extracting(Shop::name)
+                .containsExactly("Boucherie Flamande", "Épicerie du Coin", "Le Fournil");
+    }
+
+    @Test
+    void finds_an_approved_shop() {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, ShopStatus.APPROVED)));
+
+        assertThat(service.requireApprovedShop(1L).name()).isEqualTo("Le Fournil");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ShopStatus.class, names = {"PENDING", "REJECTED"})
+    void hides_a_shop_that_is_not_approved(ShopStatus status) {
+        when(shopPort.findById(1L)).thenReturn(Optional.of(shop(1L, status)));
+
+        assertThatThrownBy(() -> service.requireApprovedShop(1L))
+                .isInstanceOf(ShopNotFoundException.class);
+    }
+
+    @Test
+    void answers_not_found_for_an_unknown_shop() {
+        when(shopPort.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.requireApprovedShop(99L))
+                .isInstanceOf(ShopNotFoundException.class);
     }
 }

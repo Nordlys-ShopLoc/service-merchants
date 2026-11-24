@@ -7,7 +7,11 @@ import fr.nordlys.shoploc.merchants.domain.exception.ShopNotFoundException;
 import fr.nordlys.shoploc.merchants.domain.model.Shop;
 import fr.nordlys.shoploc.merchants.domain.model.ShopStatus;
 import fr.nordlys.shoploc.merchants.domain.port.ShopPort;
+
+import java.text.Collator;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 /** Shops of the partner program: listing, registration (US-S13) and approval (US-A01). */
 public class ShopService {
@@ -23,10 +27,14 @@ public class ShopService {
     }
 
     /** Shops shown to clients: only the approved ones. */
+
     public List<Shop> findPartners() {
-        return shopPort.findByStatus(ShopStatus.APPROVED);
+        return shopPort.findByStatus(ShopStatus.APPROVED).stream()
+                .sorted(Comparator.comparing(Shop::name, Collator.getInstance(Locale.FRENCH)))
+                .toList();
     }
 
+    /** US-C05 and US-C07: a shop visible by clients. A pending or refused shop is answered as not found. */
     public Shop requireApprovedShop(Long shopId) {
         Shop shop = shopPort.findById(shopId).orElseThrow(() -> new ShopNotFoundException(shopId));
 
