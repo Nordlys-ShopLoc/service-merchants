@@ -158,4 +158,33 @@ class ProductServiceTest {
                 .isInstanceOf(OperationNotAllowedException.class);
         verify(productPort, never()).findByShop(any());
     }
+
+    @Test
+    void marks_an_article_out_of_stock_without_withdrawing_it() {
+        when(productPort.findById(5L)).thenReturn(Optional.of(baguette(SHOP_ID)));
+
+        Product outOfStock = service.markOutOfStock(MERCHANT_ID, "MERCHANT", 5L);
+
+        assertThat(outOfStock.stock()).isZero();
+        assertThat(outOfStock.available()).isTrue();
+        assertThat(outOfStock.lowStockThreshold()).isEqualTo(10);
+        assertThat(outOfStock.name()).isEqualTo("Baguette tradition");
+        verify(productPort).save(outOfStock);
+    }
+
+    @Test
+    void refuses_to_mark_out_of_stock_an_article_of_another_shop() {
+        when(productPort.findById(5L)).thenReturn(Optional.of(baguette(99L)));
+
+        assertThatThrownBy(() -> service.markOutOfStock(MERCHANT_ID, "MERCHANT", 5L))
+                .isInstanceOf(ProductNotFoundException.class);
+        verify(productPort, never()).save(any());
+    }
+
+    @Test
+    void refuses_to_mark_out_of_stock_when_user_is_not_a_merchant() {
+        assertThatThrownBy(() -> service.markOutOfStock(7L, "CLIENT", 5L))
+                .isInstanceOf(OperationNotAllowedException.class);
+        verify(productPort, never()).save(any());
+    }
 }

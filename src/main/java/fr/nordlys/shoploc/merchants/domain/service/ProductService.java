@@ -87,4 +87,10 @@ public class ProductService {
     private String clean(String description) {
         return description == null || description.isBlank() ? null : description.trim();
     }
+
+    /** Marks the article as out of stock (stock = 0) without withdrawing it from sale. */
+    public Product markOutOfStock(Long merchantId, String role, Long productId) {
+        Product product = findOwned(merchantId, role, productId);
+        return productPort.save(product.outOfStock());
+    }
 }
