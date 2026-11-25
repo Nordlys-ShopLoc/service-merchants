@@ -125,4 +125,32 @@ class ProductControllerTest {
         mockMvc.perform(get(URL).header("X-User-Id", "7").header("X-User-Role", "CLIENT"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void marks_an_article_out_of_stock() throws Exception {
+        Product outOfStock = new Product(5L, 1L, "Pain de seigle", null, new BigDecimal("2.50"), 0, 0, true);
+        when(productService.markOutOfStock(10L, "MERCHANT", 5L)).thenReturn(outOfStock);
+
+        mockMvc.perform(post(URL + "/5/out-of-stock").header("X-User-Id", "10").header("X-User-Role", "MERCHANT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(0))
+                .andExpect(jsonPath("$.available").value(true));
+    }
+
+    @Test
+    void answers_404_when_marking_out_of_stock_an_article_of_another_shop() throws Exception {
+        when(productService.markOutOfStock(10L, "MERCHANT", 99L)).thenThrow(new ProductNotFoundException(99L));
+
+        mockMvc.perform(post(URL + "/99/out-of-stock").header("X-User-Id", "10").header("X-User-Role", "MERCHANT"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void answers_403_when_a_non_merchant_marks_an_article_out_of_stock() throws Exception {
+        when(productService.markOutOfStock(7L, "CLIENT", 5L))
+                .thenThrow(new OperationNotAllowedException("Only a merchant can manage a shop"));
+
+        mockMvc.perform(post(URL + "/5/out-of-stock").header("X-User-Id", "7").header("X-User-Role", "CLIENT"))
+                .andExpect(status().isForbidden());
+    }
 }

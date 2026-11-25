@@ -72,4 +72,12 @@ public class ProductController {
                                     @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
         return ProductResponse.from(productService.withdraw(userId, role, id));
     }
+
+    /** Marks an article as out of stock: stock becomes 0 while staying visible to clients. */
+    @PostMapping("/{id}/out-of-stock")
+    public ProductResponse markOutOfStock(@PathVariable Long id,
+                                          @RequestHeader(value = USER_ID_HEADER, required = false) Long userId,
+                                          @RequestHeader(value = USER_ROLE_HEADER, required = false) String role) {
+        return ProductResponse.from(productService.markOutOfStock(userId, role, id));
+    }
 }

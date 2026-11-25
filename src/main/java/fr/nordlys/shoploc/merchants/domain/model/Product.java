@@ -32,4 +32,9 @@ public record Product(
     public Product withdrawn() {
         return new Product(id, shopId, name, description, price, stock, lowStockThreshold, false);
     }
+
+    /** Same article, marked out of stock (stock = 0) while remaining in the catalog. */
+    public Product outOfStock() {
+        return new Product(id, shopId, name, description, price, 0, lowStockThreshold, available);
+    }
 }
