@@ -36,24 +36,28 @@ public class ProductService {
     }
 
     /** Adds an article; the stock is 0 when it is not given. */
+    /** Adds an article; the stock and the alert threshold (US-S04) are 0 when they are not given. */
     public Product add(Long merchantId, String role, String name, String description,
-                       BigDecimal price, Integer stock) {
+                       BigDecimal price, Integer stock, Integer lowStockThreshold) {
         Shop shop = shopService.requireOwnedApprovedShop(merchantId, role);
         int newStock = stock == null ? 0 : stock;
-        checkDetails(name, price, newStock);
+        int newThreshold = lowStockThreshold == null ? 0 : lowStockThreshold;
+        checkDetails(name, price, newStock, newThreshold);
 
-        Product product = new Product(null, shop.id(), name.trim(), clean(description), price, newStock, 0, true);
+        Product product = new Product(null, shop.id(), name.trim(), clean(description), price,
+                newStock, newThreshold, true);
         return productPort.save(product);
     }
 
-    /** Changes the name, description, price and stock; the stock is kept when it is not given. */
+    /** Changes the details of an article; the stock and the alert threshold are kept when they are not given. */
     public Product update(Long merchantId, String role, Long productId, String name, String description,
-                          BigDecimal price, Integer stock) {
+                          BigDecimal price, Integer stock, Integer lowStockThreshold) {
         Product product = findOwned(merchantId, role, productId);
         int newStock = stock == null ? product.stock() : stock;
-        checkDetails(name, price, newStock);
+        int newThreshold = lowStockThreshold == null ? product.lowStockThreshold() : lowStockThreshold;
+        checkDetails(name, price, newStock, newThreshold);
 
-        return productPort.save(product.withDetails(name.trim(), clean(description), price, newStock));
+        return productPort.save(product.withDetails(name.trim(), clean(description), price, newStock, newThreshold));
     }
 
     /** Withdraws the article from sale: clients no longer see it, the merchant still does. */
@@ -82,7 +86,7 @@ public class ProductService {
         return product;
     }
 
-    private void checkDetails(String name, BigDecimal price, int stock) {
+    private void checkDetails(String name, BigDecimal price, int stock, int lowStockThreshold) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("The name is required");
         }
@@ -91,6 +95,9 @@ public class ProductService {
         }
         if (stock < 0) {
             throw new IllegalArgumentException("The stock cannot be negative");
+        }
+        if (lowStockThreshold < 0) {
+            throw new IllegalArgumentException("The alert threshold cannot be negative");
         }
     }
 

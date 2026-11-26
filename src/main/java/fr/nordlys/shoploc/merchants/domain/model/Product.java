@@ -23,11 +23,11 @@ public record Product(
         return shopId.equals(shop.id());
     }
 
-    /** Same article with the details changed by the merchant. */
-    public Product withDetails(String newName, String newDescription, BigDecimal newPrice, int newStock) {
-        return new Product(id, shopId, newName, newDescription, newPrice, newStock, lowStockThreshold, available);
+    /** Same article with the details changed by the merchant (US-S03, alert threshold US-S04). */
+    public Product withDetails(String newName, String newDescription, BigDecimal newPrice, int newStock,
+                               int newLowStockThreshold) {
+        return new Product(id, shopId, newName, newDescription, newPrice, newStock, newLowStockThreshold, available);
     }
-
     /** Same article, no longer offered to clients. */
     public Product withdrawn() {
         return new Product(id, shopId, name, description, price, stock, lowStockThreshold, false);
