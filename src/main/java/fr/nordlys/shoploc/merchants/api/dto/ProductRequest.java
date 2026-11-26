@@ -14,6 +14,7 @@ public record ProductRequest(
         @NotBlank @Size(max = 120) String name,
         @Size(max = 1000) String description,
         @NotNull @DecimalMin("0.01") @Digits(integer = 6, fraction = 2) BigDecimal price,
-        @PositiveOrZero Integer stock
+        @PositiveOrZero Integer stock,
+        @PositiveOrZero Integer lowStockThreshold
 ) {
 }

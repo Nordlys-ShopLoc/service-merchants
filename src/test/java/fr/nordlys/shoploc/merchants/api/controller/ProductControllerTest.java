@@ -55,7 +55,7 @@ class ProductControllerTest {
 
     @Test
     void adds_an_article() throws Exception {
-        when(productService.add(any(), any(), any(), any(), any(), any())).thenReturn(article(true));
+        when(productService.add(any(),any(), any(), any(), any(), any(), any())).thenReturn(article(true));
 
         mockMvc.perform(post(URL).header("X-User-Id", "10").header("X-User-Role", "MERCHANT")
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_JSON))
@@ -91,8 +91,17 @@ class ProductControllerTest {
     }
 
     @Test
+    void refuses_a_negative_alert_threshold() throws Exception {
+        mockMvc.perform(post(URL).header("X-User-Id", "10").header("X-User-Role", "MERCHANT")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Pain\", \"price\": 2.50, \"lowStockThreshold\": -1}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(productService);
+    }
+
+    @Test
     void updates_an_article() throws Exception {
-        when(productService.update(any(), any(), any(), any(), any(), any(), any())).thenReturn(article(true));
+        when(productService.update(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(article(true));
 
         mockMvc.perform(put(URL + "/5").header("X-User-Id", "10").header("X-User-Role", "MERCHANT")
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_JSON))

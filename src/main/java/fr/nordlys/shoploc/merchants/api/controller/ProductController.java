@@ -50,7 +50,7 @@ public class ProductController {
                                @RequestHeader(value = USER_ROLE_HEADER, required = false) String role,
                                @Valid @RequestBody ProductRequest request) {
         Product product = productService.add(userId, role, request.name(), request.description(),
-                request.price(), request.stock());
+                request.price(), request.stock(), request.lowStockThreshold());
         return ProductResponse.from(product);
     }
 
@@ -61,7 +61,7 @@ public class ProductController {
                                   @RequestHeader(value = USER_ROLE_HEADER, required = false) String role,
                                   @Valid @RequestBody ProductRequest request) {
         Product product = productService.update(userId, role, id, request.name(), request.description(),
-                request.price(), request.stock());
+                request.price(), request.stock(), request.lowStockThreshold());
         return ProductResponse.from(product);
     }
 

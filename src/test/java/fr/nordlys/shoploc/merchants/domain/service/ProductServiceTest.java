@@ -51,7 +51,7 @@ class ProductServiceTest {
 
     @Test
     void adds_an_article_with_a_stock_of_zero_by_default() {
-        Product product = service.add(MERCHANT_ID, "MERCHANT", "  Pain de seigle ", " ", new BigDecimal("2.50"), null);
+        Product product = service.add(MERCHANT_ID, "MERCHANT", "  Pain de seigle ", " ", new BigDecimal("2.50"), null, null);
 
         assertThat(product.shopId()).isEqualTo(SHOP_ID);
         assertThat(product.name()).isEqualTo("Pain de seigle");
@@ -62,26 +62,26 @@ class ProductServiceTest {
 
     @Test
     void refuses_a_price_of_zero() {
-        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, BigDecimal.ZERO, 5))
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, BigDecimal.ZERO, 5, null))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(productPort, never()).save(any());
     }
 
     @Test
     void refuses_a_negative_price() {
-        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("-1.00"), 5))
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("-1.00"), 5, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void refuses_a_negative_stock() {
-        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("2.00"), -1))
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("2.00"), -1, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void refuses_an_article_without_name() {
-        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", " ", null, new BigDecimal("2.00"), 5))
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", " ", null, new BigDecimal("2.00"), 5, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -98,7 +98,7 @@ class ProductServiceTest {
         when(productPort.findById(5L)).thenReturn(Optional.of(baguette(SHOP_ID)));
 
         Product updated = service.update(MERCHANT_ID, "MERCHANT", 5L, "Baguette", "Farine locale",
-                new BigDecimal("1.40"), 25);
+                new BigDecimal("1.40"), 25, null);
 
         assertThat(updated.name()).isEqualTo("Baguette");
         assertThat(updated.description()).isEqualTo("Farine locale");
@@ -111,7 +111,7 @@ class ProductServiceTest {
     void keeps_the_stock_when_it_is_not_sent() {
         when(productPort.findById(5L)).thenReturn(Optional.of(baguette(SHOP_ID)));
 
-        Product updated = service.update(MERCHANT_ID, "MERCHANT", 5L, "Baguette", null, new BigDecimal("1.40"), null);
+        Product updated = service.update(MERCHANT_ID, "MERCHANT", 5L, "Baguette", null, new BigDecimal("1.40"), null, null);
 
         assertThat(updated.stock()).isEqualTo(40);
     }
@@ -140,7 +140,7 @@ class ProductServiceTest {
     void tells_when_the_article_does_not_exist() {
         when(productPort.findById(42L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(MERCHANT_ID, "MERCHANT", 42L, "Pain", null, new BigDecimal("2.00"), 5))
+        assertThatThrownBy(() -> service.update(MERCHANT_ID, "MERCHANT", 42L, "Pain", null, new BigDecimal("2.00"), 5, null))
                 .isInstanceOf(ProductNotFoundException.class);
     }
 
@@ -148,7 +148,7 @@ class ProductServiceTest {
     void refuses_a_shop_waiting_for_approval() {
         givenShop(ShopStatus.PENDING);
 
-        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("2.00"), 5))
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("2.00"), 5, null))
                 .isInstanceOf(OperationNotAllowedException.class);
     }
 
@@ -157,5 +157,59 @@ class ProductServiceTest {
         assertThatThrownBy(() -> service.findMine(7L, "CLIENT"))
                 .isInstanceOf(OperationNotAllowedException.class);
         verify(productPort, never()).findByShop(any());
+    }
+
+    // ---------- US-S04 ----------
+
+    @Test
+    void lists_the_articles_to_restock_most_urgent_first() {
+        when(productPort.findByShop(SHOP_ID)).thenReturn(List.of(
+                new Product(1L, SHOP_ID, "Pain de campagne", null, new BigDecimal("3.20"), 15, 5, true),
+                new Product(2L, SHOP_ID, "Croissant", null, new BigDecimal("1.10"), 4, 10, true),
+                new Product(3L, SHOP_ID, "Brioche", null, new BigDecimal("4.00"), 0, 0, true),
+                new Product(4L, SHOP_ID, "Galette", null, new BigDecimal("6.00"), 0, 0, false)));
+
+        assertThat(service.findStockAlerts(MERCHANT_ID, "MERCHANT"))
+                .extracting(Product::name)
+                .containsExactly("Brioche", "Croissant");
+    }
+
+    @Test
+    void refuses_the_stock_alerts_to_a_client() {
+        assertThatThrownBy(() -> service.findStockAlerts(MERCHANT_ID, "CLIENT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+    }
+
+    @Test
+    void refuses_the_stock_alerts_of_a_shop_not_yet_approved() {
+        givenShop(ShopStatus.PENDING);
+
+        assertThatThrownBy(() -> service.findStockAlerts(MERCHANT_ID, "MERCHANT"))
+                .isInstanceOf(OperationNotAllowedException.class);
+    }
+
+    @Test
+    void adds_an_article_with_an_alert_threshold() {
+        Product product = service.add(MERCHANT_ID, "MERCHANT", "Croissant", null, new BigDecimal("1.10"), 30, 10);
+
+        assertThat(product.lowStockThreshold()).isEqualTo(10);
+    }
+
+    @Test
+    void changes_the_alert_threshold_and_keeps_the_stock() {
+        when(productPort.findById(5L)).thenReturn(Optional.of(baguette(SHOP_ID)));
+
+        Product updated = service.update(MERCHANT_ID, "MERCHANT", 5L, "Baguette tradition", null,
+                new BigDecimal("1.30"), null, 15);
+
+        assertThat(updated.lowStockThreshold()).isEqualTo(15);
+        assertThat(updated.stock()).isEqualTo(40);
+    }
+
+    @Test
+    void refuses_a_negative_alert_threshold() {
+        assertThatThrownBy(() -> service.add(MERCHANT_ID, "MERCHANT", "Pain", null, new BigDecimal("2.00"), 5, -1))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(productPort, never()).save(any());
     }
 }
